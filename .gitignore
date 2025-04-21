@@ -172,3 +172,6 @@ poetry.toml
 
 ### Scraper ###
 *.html
+
+/examtopics_scraper.egg-info
+/data

@@ -1,3 +1,4 @@
+import csv
 import os
 
 import itemadapter
@@ -27,31 +28,39 @@ class ExamtopicsQuestionsStdoutPipeline(ScrapyPipeline):
         return item
 
 
-def generate_questions_html_exporter(
-        provider: str, exam: str, output: str | bytes | os.PathLike | int) -> type[ScrapyPipeline]:
-    class ExamtopicsQuestionsHtmlPipeline(ScrapyPipeline):
-        """HTML exporter for ExamTopics question discussions."""
+class ExamtopicsQuestionsCsvPipeline(ScrapyPipeline):
+    """CSV exporter for ExamTopics question discussions (id, url)."""
 
-        def __init__(self):
-            self.questions = []
+    def __init__(self, output_file):
+        self.output_file = output_file
+        self.file_handle = None
+        self.csv_writer = None
 
-        def close_spider(self, spider):
-            with open(output, "w") as out:
-                print(f"<html><head><title>{provider} {exam}</title>"
-                      "<style>table{border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;width:100%}td,th{border:1px solid #ddd;padding:8px}table tr:nth-child(2n){background-color:#f2f2f2}table tr:hover{background-color:#ddd}table th{background-color:#0095eb;color:#fff;padding-bottom:12px;padding-top:12px;text-align:left}</style></head>"
-                      f"<body><h1>{provider} {exam}</h1><table><"
-                      f"tr><th>Topic</th><th>Question</th></tr>", file=out)
-                for question in sorted(self.questions, key=lambda q: (q["topic"], q["question"])):
-                    print(f'<tr><td>{question["topic"]}</td><td><a href="{question["url"]}" '
-                          f'target="_blank">{question["question"]}</a></td></tr>', file=out)
-                print("</table></body></html>", file=out)
+    @classmethod
+    def from_crawler(cls, crawler):
+        output_file = crawler.settings.get('CSV_OUTPUT_PATH')
+        if not output_file:
+            raise ValueError("CSV_OUTPUT_PATH setting is required for ExamtopicsQuestionsCsvPipeline")
+        return cls(output_file=output_file)
 
-        def open_spider(self, spider):
-            self.questions = []
+    def open_spider(self, spider):
+        # Ensure the directory exists
+        # print(self.output_file)
+        # os.makedirs(os.path.dirname(self.output_file), exist_ok=True)
+        self.file_handle = open(self.output_file, 'w', newline='', encoding='utf-8')
+        self.csv_writer = csv.writer(self.file_handle)
+        self.csv_writer.writerow(['id', 'url'])  # Write header
 
-        def process_item(self, item, spider):
-            # Cannot print one item at a time because questions are sorted
-            self.questions.append(itemadapter.ItemAdapter(item).asdict())
-            return item
+    def close_spider(self, spider):
+        if self.file_handle:
+            self.file_handle.close()
 
-    return ExamtopicsQuestionsHtmlPipeline
+    def process_item(self, item, spider):
+        adapter = itemadapter.ItemAdapter(item)
+        # Use 'question' field as 'id'
+        row = [adapter.get('question'), adapter.get('url')]
+        if self.csv_writer:
+            self.csv_writer.writerow(row)
+        return item
+
+# Removed generate_questions_html_exporter and ExamtopicsQuestionsHtmlPipeline
