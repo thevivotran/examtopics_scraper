@@ -26,11 +26,11 @@ class ExamtopicsQuestionsSpider(scrapy.Spider):
 
     name = "examtopics_questions"
 
-    def __init__(self, provider, exam, *args, **kwargs):
+    def __init__(self, provider, exam_code, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.exam = exam
+        self.exam_code = exam_code
         self.provider = provider
-        self.question_regex = re.compile(fr"^\s+Exam {self.exam} (.*) question (\d+)",
+        self.question_regex = re.compile(fr"^\s+Exam {self.exam_code} (.*) question (\d+)",
                                          re.IGNORECASE)
         self.start_urls = [f"https://www.examtopics.com/discussions/{self.provider}/"]
 
